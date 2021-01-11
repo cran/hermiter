@@ -1,4 +1,4 @@
-# hermiter v2.0.0
+# hermiter v2.0.2
 
 ## Breaking changes
 
@@ -33,7 +33,9 @@ standardized.
 * The method for estimating quantiles with the univariate Hermite series based
 estimator has been improved and is now consistent with the estimator in the
 literature.
-* Added further error trapping and other minor enhancements.
+* Vectorized the univariate quantile estimation method.
+* Added further error trapping and other minor enhancements (also for C++
+routines).
 
 # hermiter v1.0.0
 

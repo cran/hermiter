@@ -117,6 +117,11 @@ merge_moments_and_count_bivar <- function(hermite_estimator1
 #' @param hermite_estimators A list of hermite_estimator_bivar objects.
 #' @return An object of class hermite_estimator_bivar.
 merge_standardized_helper_bivar <- function(hermite_estimators) {
+  all_N <- lapply(hermite_estimators, FUN =
+                    function(x){return(x$N_param)})
+  if (length(unique(all_N)) >1) {
+    stop("List must contain Hermite estimators with a consistent N")
+  }
   N <- hermite_estimators[[1]]$N_param
   hermite_estimator_merged <- base::Reduce(f=merge_moments_and_count_bivar, 
                                              x = hermite_estimators)
@@ -132,8 +137,8 @@ merge_standardized_helper_bivar <- function(hermite_estimators) {
       gauss_hermite_quad_100(function(t){integrand_coeff_univar(t, x, 
                                       hermite_estimator_merged, k, 2)})}, 
       FUN.VALUE=numeric(1)))}, FUN.VALUE=numeric(1))
-  herm_mod <- function(t,N){hermite_polynomial(N, t) *
-      hermite_normalization(N)}
+  herm_mod <- function(t,N){hermite_polynomial_N(N, t) *
+      hermite_normalization_N(N)}
   g_mat <- function(N,t_1,t_2, const_mult){sqrt(2) * const_mult * 
       tcrossprod(hermite_function_N(N,t_1),herm_mod(t_2,N))}
   g_mat_scale_shift <- function(N,scale,shift){
@@ -164,7 +169,7 @@ merge_standardized_helper_bivar <- function(hermite_estimators) {
                                  new_sd_x)
     res_2 <- g_mat_scale_shift(N_in,prev_sd_y/new_sd_y,(prev_mean_y-new_mean_y)/
                                  new_sd_y)
-    return(res_1%*%hermite_est_current$coeff_mat_bivar%*%t(res_2))
+    return(res_1%*%(hermite_est_current$coeff_mat_bivar%*%t(res_2)))
   }
   coeff_mat_lst <- lapply(hermite_estimators, FUN = function(x){x$num_obs / 
       hermite_estimator_merged$num_obs * 
@@ -320,10 +325,10 @@ update_sequential.hermite_estimator_bivar <- function(this, x)
     }
   }
   h_x <-
-    as.vector(hermite_function(this$N_param, x[1], 
+    as.vector(hermite_function_N(this$N_param, x[1], 
                                this$normalization_hermite_vec))
   h_y <-
-    as.vector(hermite_function(this$N_param, x[2], 
+    as.vector(hermite_function_N(this$N_param, x[2], 
                                this$normalization_hermite_vec))
   if (is.na(this$exp_weight)) {
     this$coeff_vec_x <-
@@ -391,9 +396,9 @@ update_batch.hermite_estimator_bivar <- function(this, x) {
                                              (this$num_obs - 1))
   }
   h_x <-
-    hermite_function(this$N_param, x[,1], this$normalization_hermite_vec)
+    hermite_function_N(this$N_param, x[,1], this$normalization_hermite_vec)
   h_y <-
-    hermite_function(this$N_param, x[,2], this$normalization_hermite_vec)
+    hermite_function_N(this$N_param, x[,2], this$normalization_hermite_vec)
   this$coeff_vec_x <- rowSums(h_x) / this$num_obs
   this$coeff_vec_y <- rowSums(h_y) / this$num_obs
   this$coeff_mat_bivar <- tcrossprod(h_x,h_y) / this$num_obs
@@ -429,10 +434,11 @@ dens_helper.hermite_estimator_bivar <- function(this,x, clipped = FALSE){
     x <- (x - c(this$running_mean_x,this$running_mean_y))/running_std_vec
     factor <- 1 / (prod(running_std_vec))
   }
-  return(factor * t(hermite_function(this$N_param, x[1], 
+  return(factor * t(hermite_function_N(this$N_param, x[1], 
                                      this$normalization_hermite_vec)) %*%
-           this$coeff_mat_bivar  %*% 
-           hermite_function(this$N_param, x[2],this$normalization_hermite_vec))
+           this$coeff_mat_bivar %*%
+           hermite_function_N(this$N_param, x[2], 
+                              this$normalization_hermite_vec))
 }
 
 #' Estimates the probability densities for a matrix of 2-d x values
@@ -492,9 +498,11 @@ cum_prob_helper.hermite_estimator_bivar <- function(this,x, clipped = FALSE){
     running_std_vec <- calculate_running_std(this)
     x <- (x - c(this$running_mean_x,this$running_mean_y))/running_std_vec
   }
-  return(t(hermite_int_lower(N = this$N_param,x = x[1])) %*%
-           this$coeff_mat_bivar  %*%
-           hermite_int_lower(N = this$N_param,x = x[2]))
+  return(t(hermite_int_lower(N = this$N_param,x = x[1],normalization_hermite=
+                               this$normalization_hermite_vec)) 
+         %*% this$coeff_mat_bivar %*% 
+           hermite_int_lower(N = this$N_param,x = x[2],normalization_hermite=
+                               this$normalization_hermite_vec))
 }
 
 #' Estimates the cumulative probabilities for a matrix of 2-d x values
@@ -567,11 +575,12 @@ spearmans.hermite_estimator_bivar <- function(this, clipped = FALSE)
     return(NA)
   }
   W_transpose <- t(this$W)
-  result <- 12*t(this$coeff_vec_x) %*% W_transpose %*%this$coeff_mat_bivar %*% 
-    this$W%*%this$coeff_vec_y +
-    -6 * t(this$coeff_vec_x)%*%W_transpose%*%this$coeff_mat_bivar%*%this$z +
-    -6 *t(this$z)%*% this$coeff_mat_bivar%*%this$W%*%this$coeff_vec_y +
-    3 * t(this$z)%*% this$coeff_mat_bivar%*%this$z
+  result <- 12*(t(this$coeff_vec_x) %*% W_transpose) %*% 
+    this$coeff_mat_bivar %*% (this$W %*% this$coeff_vec_y) +
+    -6 * (t(this$coeff_vec_x) %*% W_transpose) %*% (this$coeff_mat_bivar %*% 
+                                                      this$z) +
+    -6 * (t(this$z)%*% this$coeff_mat_bivar) %*% (this$W %*% this$coeff_vec_y)+
+    3 * t(this$z) %*% (this$coeff_mat_bivar%*%this$z)
   if (clipped == TRUE) {
     result <- pmin(pmax(result, -1), 1)
   }

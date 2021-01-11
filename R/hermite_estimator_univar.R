@@ -94,6 +94,11 @@ merge_moments_and_count_univar <- function(hermite_estimator1,
 #' @param hermite_estimators A list of hermite_estimator_univar objects.
 #' @return An object of class hermite_estimator_univar.
 merge_standardized_helper_univar <- function(hermite_estimators) {
+  all_N <- lapply(hermite_estimators, FUN =
+                          function(x){return(x$N_param)})
+  if (length(unique(all_N)) >1) {
+    stop("List must contain Hermite estimators with a consistent N")
+  }
   N <- hermite_estimators[[1]]$N_param
   hermite_estimator_merged <- base::Reduce(f=merge_moments_and_count_univar, 
                                              x = hermite_estimators)
@@ -223,34 +228,32 @@ update_sequential.hermite_estimator_univar <- function(this, x) {
   this$num_obs <- this$num_obs + 1
   if (this$standardize_obs == TRUE) {
     if (is.na(this$exp_weight)) {
-      processed_vec <-
-        standardizeInputs(x,
-                          this$num_obs,
-                          this$running_mean,
-                          this$running_variance)
-      this$running_mean <- processed_vec[1]
-      this$running_variance <- processed_vec[2]
-      x <- processed_vec[3]
+      prev_running_mean <- this$running_mean
+      this$running_mean <-  (this$running_mean * (this$num_obs - 1) + x) /
+        this$num_obs
       if (this$num_obs < 2) {
         return(this)
       }
+      this$running_variance <- this$running_variance + (x - prev_running_mean) *
+        (x - this$running_mean)
+      x <- (x - this$running_mean) /  sqrt(this$running_variance /
+                                            (this$num_obs - 1))
     } else {
-      processed_vec <-
-        standardizeInputsEW(x,
-                            this$num_obs,
-                            this$exp_weight,
-                            this$running_mean,
-                            this$running_variance)
-      this$running_mean <- processed_vec[1]
-      this$running_variance <- processed_vec[2]
-      x <- processed_vec[3]
-      if (this$num_obs < 2) {
+      if (this$num_obs < 2){
+        this$running_mean <- x
+        this$running_variance <- 1
         return(this)
       }
+      this$running_mean <-  (1 - this$exp_weight) * this$running_mean +
+        this$exp_weight * x
+      this$running_variance <- (1 - this$exp_weight) * this$running_variance +
+        this$exp_weight * (x - this$running_mean)^2
+      x <- (x - this$running_mean) / sqrt(this$running_variance)
     }
   }
   h_k <-
-    as.vector(hermite_function(this$N_param, x, this$normalization_hermite_vec))
+    as.vector(hermite_function_N(this$N_param, x, 
+                                 this$normalization_hermite_vec))
   if (is.na(this$exp_weight)) {
     this$coeff_vec <-
       (this$coeff_vec * (this$num_obs - 1) + h_k) / this$num_obs
@@ -281,6 +284,9 @@ update_batch.hermite_estimator_univar <- function(this, x) {
   if (!is.na(this$exp_weight)) {
     stop("The Hermite estimator cannot be exponentially weighted.")
   }
+  if (length(x) < 1) {
+    stop("x must contain at least one value.")
+  }
   this$num_obs <- length(x)
   if (this$standardize_obs == TRUE) {
     this$running_mean <- mean(x)
@@ -288,9 +294,8 @@ update_batch.hermite_estimator_univar <- function(this, x) {
     x <-
       (x - this$running_mean) / sqrt(this$running_variance / (this$num_obs - 1))
   }
-  h_k <-
-    hermite_function(this$N_param, x, this$normalization_hermite_vec)
-  this$coeff_vec <- rowSums(h_k) / this$num_obs
+  this$coeff_vec <- hermite_function_sum_N(this$N_param, x,
+                                 this$normalization_hermite_vec) / this$num_obs
   return(this)
 }
 
@@ -325,22 +330,20 @@ dens.hermite_estimator_univar <- function(this, x, clipped = FALSE) {
   if (!is.numeric(x)) {
     stop("x must be numeric.")
   }
+  if (length(x) < 1) {
+    stop("x must contain at least one value.")
+  }
   if (this$num_obs < 2) {
     return(rep(NA, length(x)))
   }
   factor <- 1
   if (this$standardize_obs == TRUE) {
-    # if (is.na(this$exp_weight)) {
-    #   running_std <- sqrt(this$running_variance / (this$num_obs - 1))
-    # } else {
-    #   running_std <- sqrt(this$running_variance)
-    # }
     running_std <- calculate_running_std(this)
     x <- (x - this$running_mean) / running_std
     factor <- 1 / running_std
   }
   h_k <-
-    hermite_function(this$N_param, x, this$normalization_hermite_vec)
+    hermite_function_N(this$N_param, x, this$normalization_hermite_vec)
   pdf_val <- crossprod(h_k, this$coeff_vec) * factor
   if (clipped == TRUE) {
     pdf_val <- pmax(pdf_val, 1e-08)
@@ -370,6 +373,9 @@ cum_prob.hermite_estimator_univar <- function(this, x, clipped = FALSE) {
   if (!is.numeric(x)) {
     stop("x must be numeric.")
   }
+  if (length(x) < 1) {
+    stop("x must contain at least one value.")
+  }
   if (this$num_obs < 2) {
     return(rep(NA, length(x)))
   }
@@ -378,8 +384,9 @@ cum_prob.hermite_estimator_univar <- function(this, x, clipped = FALSE) {
     x <- (x - this$running_mean) / running_std
   }
   h_k <-
-    hermite_function(this$N_param, x, this$normalization_hermite_vec)
-  integrals_hermite <- hermite_integral_val(this$N_param, x, h_k)
+    hermite_function_N(this$N_param, x, this$normalization_hermite_vec)
+  integrals_hermite <- hermite_int_lower(this$N_param, x, 
+                                         hermite_function_matrix = h_k)
   cdf_val <- crossprod(integrals_hermite, this$coeff_vec)
   if (clipped == TRUE) {
     cdf_val <- pmin(pmax(cdf_val, 1e-08), 1)
@@ -391,78 +398,56 @@ cum_prob.hermite_estimator_univar <- function(this, x, clipped = FALSE) {
 #
 # This helper method is intended for internal use by the 
 # hermite_estimator_univar class.
-quantile_helper <- function(this, p) {
-  h_k <-
-    hermite_function(this$N_param, x=0, this$normalization_hermite_vec)
-  p_lower <- this$coeff_vec %*% hermite_integral_val(this$N_param,x=0,h_k)
-  p_upper <- 1-as.numeric(this$coeff_vec %*% 
-                      hermite_integral_val_upper(this$N_param,x=0,h_k))
-  if (is.na(p_lower) | is.na(p_upper)){
-    return(NA)
+quantile_helper <- function(this, p_vec, p_lower, p_upper, x_lower,
+                            x_upper) {
+  f_est <- function(x,p) {
+    lower_idx <- which(x < x_lower)
+    upper_idx <- which(x > x_upper)
+    ambig_idx <- which(x >= x_lower & x <= x_upper)
+    res <- rep(NA,length(x))
+    if (length(lower_idx)>0){
+      res[lower_idx] <- crossprod(hermite_int_lower(this$N_param, 
+           x[lower_idx], normalization_hermite = 
+             this$normalization_hermite_vec), this$coeff_vec) - p[lower_idx]
+    }
+    if (length(upper_idx)>0){
+      res[upper_idx] <- 1 - 
+        crossprod(hermite_int_upper(this$N_param, 
+           x[upper_idx], normalization_hermite = 
+             this$normalization_hermite_vec), this$coeff_vec) - p[upper_idx]
+    }
+    if (length(ambig_idx)>0){
+      if (p_upper < p_lower){
+        res[ambig_idx] <- (p_upper + (x[ambig_idx]-x_lower) * 
+            as.numeric((p_lower-p_upper)/(x_upper-x_lower))) - p[ambig_idx]
+      }
+      else if (p_upper > p_lower){
+        res[ambig_idx] <- (p_lower + (x[ambig_idx]-x_lower) * 
+                        (p_upper-p_lower)/(x_upper-x_lower)) - p[ambig_idx]
+      } else if (p_upper == p_lower){
+        res[ambig_idx] <- p_upper - p[ambig_idx]
+      }
+    }
+    return(res)
   }
-  if (p_upper < p_lower){
-    x_lower <- tryCatch({
-      stats::uniroot(
-        f = function(x) {
-          this$coeff_vec %*% hermite_int_lower(this$N_param,x) - p_upper
-        },
-        interval = c(-100, 100)
-      )$root
-    },
-    error = function(e) {NA})
-    x_upper <- tryCatch({
-      stats::uniroot(
-        f = function(x) {
-          1-as.numeric(this$coeff_vec %*% 
-                         hermite_int_upper(this$N_param,x)) - p_lower
-        },
-        interval = c(-100, 100)
-      )$root
-    },
-    error = function(e) {NA})
-  } else if (p_upper > p_lower) {
-    x_lower <- -1e-6
-    x_upper <- 1e-6
-  } else if (p_upper == p_lower){
-    x_lower <- 0
-    x_upper <- 0
+  # Vectorized bisection search:
+  max_steps <- 25
+  x_0 <- rep(-50,length(p_vec))
+  x_1 <- rep(50,length(p_vec))
+  f_0 <- rep(0,length(p_vec)) - p_vec
+  f_1 <- rep(1,length(p_vec)) - p_vec
+  for (step in seq_len(max_steps)) {
+    est  <- (x_0 + x_1)/2
+    f_mid <- f_est(est,p_vec)
+    mask_0 <- sign(f_mid) == sign(f_0)
+    mask_1 <-  sign(f_mid) == sign(f_1)
+    x_0 <- ifelse( mask_0, est, x_0)
+    x_1 <- ifelse( mask_1, est, x_1)
+    f_0 <- ifelse( mask_0, f_mid, f_0 )
+    f_1 <- ifelse( mask_1, f_mid, f_1 )
+    error_max <- max(abs(x_1 - x_0))
+    if (error_max <= 2e-4) {break}
   }
-  if (is.na(x_lower) | is.na(x_upper)){
-    return(NA)
-  }
-  est <- tryCatch({
-    stats::uniroot(
-      f = function(x) {
-        lower_idx <- which(x < x_lower)
-        upper_idx <- which(x > x_upper)
-        ambig_idx <- which(x >= x_lower & x <= x_upper)
-        res <- rep(NA,length(x))
-        if (length(lower_idx)>0){
-          res[lower_idx] <- crossprod(hermite_int_lower(this$N_param, 
-                                        x[lower_idx]), this$coeff_vec) - p
-        }
-        if (length(upper_idx)>0){
-          res[upper_idx] <- 1 - 
-            crossprod(hermite_int_upper(this$N_param, 
-                                        x[upper_idx]), this$coeff_vec) - p
-        }
-        if (length(ambig_idx)>0){
-          if (p_upper < p_lower){
-            res[ambig_idx] <- (p_upper + (x[ambig_idx]-x_lower) * 
-                           as.numeric((p_lower-p_upper)/(x_upper-x_lower))) - p
-          }
-          else if (p_upper > p_lower){
-            res[ambig_idx] <- (p_lower + (x[ambig_idx]-x_lower) * 
-                                 (p_upper-p_lower)/(x_upper-x_lower)) - p
-          } else if (p_upper == p_lower){
-            res[ambig_idx] <- p_upper
-          }
-        }
-        return(res)
-      },
-      interval = c(-100, 100)
-    )$root
-  }, error = function(e) {NA})
   if (is.na(this$exp_weight)) {
     est <-
       est * sqrt(this$running_variance / (this$num_obs - 1)) + this$running_mean
@@ -493,19 +478,59 @@ quant.hermite_estimator_univar <- function(this, p) {
   if (!is.numeric(p)) {
     stop("p must be numeric.")
   }
+  if (length(p) < 1) {
+    stop("p must contain at least one value.")
+  }
+  if (any(p>1) | any(p<0)) {
+    stop("p must contain probabilities i.e. p>=0 and p<=1.")
+  }
   if (this$standardize_obs != TRUE) {
     stop("Quantile estimation requires standardization to be true.")
   }
   if (this$num_obs < 2) {
     return(rep(NA, length(p)))
   }
-  result <- rep(0, length(p))
-  for (idx in seq_along(p)) {
-    if (p[idx] < 0 | p[idx] > 1) {
-      result[idx] <- NA
-    }
-    result[idx] <- quantile_helper(this, p[idx])
+  p_lower <- as.numeric(crossprod(this$coeff_vec, 
+                              h_int_lower_zero_serialized[1:(this$N_param+1)]))
+  p_upper <- 1-as.numeric(crossprod(this$coeff_vec, 
+                              h_int_upper_zero_serialized[1:(this$N_param+1)]))
+  if (is.na(p_lower) | is.na(p_upper)){
+    return(rep(NA, length(p)))
   }
+  if (p_upper < p_lower){
+    x_lower <- tryCatch({
+      stats::uniroot(
+        f = function(x) {
+          crossprod(this$coeff_vec,hermite_int_lower(this$N_param,x,
+          normalization_hermite = this$normalization_hermite_vec)) - p_upper
+        },
+        interval = c(-100, 100)
+      )$root
+    },
+    error = function(e) {NA})
+    x_upper <- tryCatch({
+      stats::uniroot(
+        f = function(x) {
+          1-as.numeric(crossprod(this$coeff_vec, 
+                         hermite_int_upper(this$N_param,x,
+          normalization_hermite = this$normalization_hermite_vec))) - p_lower
+        },
+        interval = c(-100, 100)
+      )$root
+    },
+    error = function(e) {NA})
+  } else if (p_upper > p_lower) {
+    x_lower <- -1e-6
+    x_upper <- 1e-6
+  } else if (p_upper == p_lower){
+    x_lower <- 0
+    x_upper <- 0
+  }
+  if (is.na(x_lower) | is.na(x_upper)){
+    return(rep(NA, length(p)))
+  }
+  result <- quantile_helper(this, p, p_lower, p_upper, x_lower,
+                            x_upper)
   return(result)
 }
 

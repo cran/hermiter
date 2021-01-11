@@ -3,7 +3,7 @@ Title: Efficient Sequential and Batch Estimation of Univariate and
         Bivariate Probability Density Functions and Cumulative
         Distribution Functions along with Quantiles (Univariate) and
         Spearman's Correlation (Bivariate)
-Version: 2.0.0
+Version: 2.0.2
 Authors@R: c(
   person("Michael","Stephanou",role=c("aut","cre"), email="michael.stephanou@gmail.com"),
   person("Melvin","Varughese",role="ctb"))
@@ -26,9 +26,10 @@ RoxygenNote: 7.1.1
 Suggests: testthat, magrittr, knitr, rmarkdown, dplyr, data.table,
         ggplot2, DT, mvtnorm, patchwork
 VignetteBuilder: knitr
+ByteCompile: true
 URL: https://github.com/MikeJaredS/hermiter
 BugReports: https://github.com/MikeJaredS/hermiter/issues
 NeedsCompilation: yes
-Packaged: 2020-12-14 11:28:20 UTC; mjste
+Packaged: 2021-01-05 06:53:59 UTC; mjste
 Repository: CRAN
-Date/Publication: 2020-12-14 12:50:05 UTC
+Date/Publication: 2021-01-11 15:10:09 UTC

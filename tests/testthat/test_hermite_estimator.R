@@ -33,6 +33,8 @@ test_that("error trapping for hermite_estimator work as expected", {
   expect_error(dens(hermite_est, c()))
   expect_error(cum_prob(hermite_est, c()))
   expect_error(quant(hermite_est, c()))
+  expect_error(quant(hermite_est, p=2))
+  expect_error(quant(hermite_est, p=-0.5))
   expect_error(merge_hermite(list()))
   hermite_est <- hermite_estimator(N = 10, standardize = FALSE)
   hermite_est <- update_batch(hermite_est,c(1,2,3))
@@ -458,9 +460,6 @@ test_that("hermite_estimators merge consistently", {
                tolerance = 1e-06)
   expect_equal(hermite_merged$coeff_vec, hermite_est$coeff_vec, 
                tolerance = 5e-02)
-  hermite_est <-
-    hermite_estimator(N = 20, standardize = FALSE) %>% 
-    update_batch(test_observations)
   hermite_est_1 <-
     hermite_estimator(N = 10, standardize = FALSE) %>% 
     update_batch(test_observations[1:10])
@@ -777,7 +776,7 @@ test_that("quantile estimation works as expected", {
     update_batch(test_observations)
   quantiles_est <- hermite_est %>% quant(c(0.25, 0.5, 0.75))
   expect_equal(quantiles_est,
-               c(-1.31098405,  0.04148433,  0.90887067),
+               c(-1.31079556,  0.04139707,  0.90912314),
                tolerance = 1e-07)
   hermite_est <- hermite_estimator(N = 10, standardize = TRUE)
   for (idx in seq_along(test_observations)) {
@@ -786,7 +785,7 @@ test_that("quantile estimation works as expected", {
   }
   quantiles_est <- hermite_est %>% quant(c(0.25, 0.5, 0.75))
   expect_equal(quantiles_est,
-               c(-0.5982640,  0.1404652,  1.1469320),
+               c(-0.5984749,  0.1403919,  1.1469321),
                tolerance = 1e-07)
   hermite_est <-
     hermite_estimator(N = 10,
@@ -797,9 +796,8 @@ test_that("quantile estimation works as expected", {
       hermite_est %>% update_sequential(test_observations[idx])
   }
   quantiles_est <- hermite_est %>% quant(c(0.25, 0.5, 0.75))
-  expect_equal(quantiles_est, c(-0.05505446,  0.36010728,  1.43740885), 
+  expect_equal(quantiles_est, c(-0.05505796,  0.36015454,  1.43755939), 
                tolerance = 1e-06)
-  expect_true(is.na(quant(hermite_est, p=2)))
   hermite_est <-
     hermite_estimator(N = 30,
                       standardize = TRUE) %>% update_batch(c(1:4))
@@ -809,6 +807,44 @@ test_that("quantile estimation works as expected", {
 })
 
 test_that("convenience and utility functions work as expected", {
+  hermite_poly_vals <- as.vector(hermite_polynomial_N(N=0,x=c(2)))
+  target_values <-
+    c(
+      1
+    )
+  expect_equal(hermite_poly_vals,target_values,tolerance=1e-6)
+  hermite_poly_vals <- as.vector(hermite_polynomial_N(N=1,x=c(2)))
+  target_values <-
+    c(
+      1,
+      4
+    )
+  expect_equal(hermite_poly_vals,target_values,tolerance=1e-6)
+  hermite_poly_vals <- as.vector(hermite_polynomial_N(N=6,x=c(2)))
+  target_values <-
+    c(
+      1,
+      4,
+      14,
+      40,
+      76,
+      -16,
+      -824
+    )
+  expect_equal(hermite_poly_vals,target_values,tolerance=1e-6)
+  hermite_function_vals <- as.vector(hermite_function_N(N=0,x=c(2)))
+  target_values <-
+    c(
+      0.101653788306418
+    )
+  expect_equal(hermite_function_vals,target_values,tolerance=1e-6)
+  hermite_function_vals <- as.vector(hermite_function_N(N=1,x=c(2)))
+  target_values <-
+    c(
+      0.101653788306418,
+      0.287520332179079
+    )
+  expect_equal(hermite_function_vals,target_values,tolerance=1e-6)
   hermite_function_vals <- as.vector(hermite_function_N(N=6,x=c(2)))
   target_values <-
     c(
@@ -831,10 +867,30 @@ test_that("convenience and utility functions work as expected", {
   expect_equal(target_integral,hermite_int_upper_val,tolerance=1e-4)
   target_integral <- stats::integrate(f=function(t){
     hermite_function_N(N=6,t)[7,]}, lower=-Inf, upper=Inf)$value
-  hermite_int_full <- hermite_int_full_domain(N=6)[7]
+  hermite_int_full <- hermite_int_full(N=6)[7]
   expect_equal(target_integral,hermite_int_full,tolerance=1e-4)
   target_integral <- stats::integrate(function(x){x*exp(-x^2)}, 
                                       lower=-Inf,upper=Inf)$value
   quad_val <- gauss_hermite_quad_100(function(x){x})
   expect_equal(target_integral,quad_val,tolerance=1e-5)
+  hermite_function_sum_vals <- as.vector(
+    rowSums(hermite_function_N(N=6,x=c(1))))
+  expect_equal(hermite_function_sum_vals,
+                         hermite_function_sum_N(N=6,x=c(1)),tol=1e-7)
+  hermite_function_sum_vals <- as.vector(
+    rowSums(hermite_function_N(N=6,x=c(1,2))))
+  expect_equal(hermite_function_sum_vals,
+               hermite_function_sum_N(N=6,x=c(1,2)),tol=1e-7)
+  hermite_function_sum_vals <- as.vector(
+    rowSums(hermite_function_N(N=6,x=c(1,2,3))))
+  expect_equal(hermite_function_sum_vals,
+               hermite_function_sum_N(N=6,x=c(1,2,3)),tol=1e-7)
+  hermite_function_sum_vals <- as.vector(
+    rowSums(hermite_function_N(N=6,x=c(1,2,3,4))))
+  expect_equal(hermite_function_sum_vals,
+               hermite_function_sum_N(N=6,x=c(1,2,3,4)),tol=1e-7)
+  hermite_function_sum_vals <- as.vector(
+    rowSums(hermite_function_N(N=6,x=seq(-4,4,by=0.5))))
+  expect_equal(hermite_function_sum_vals,
+               hermite_function_sum_N(N=6,x=seq(-4,4,by=0.5)),tol=1e-7)
 })

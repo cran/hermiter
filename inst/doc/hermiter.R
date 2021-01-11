@@ -170,6 +170,7 @@ vals <- seq(-5,5,by=0.25)
 x_grid <- as.matrix(expand.grid(X=vals, Y=vals))
 pdf_est <- dens(hermite_est,x_grid)
 cdf_est <- cum_prob(hermite_est,x_grid)
+spear_est <- spearmans(hermite_est)
 
 ## -----------------------------------------------------------------------------
 sig_x <- 1
@@ -187,7 +188,6 @@ vals <- seq(-5,5,by=0.25)
 x_grid <- as.matrix(expand.grid(X=vals, Y=vals))
 pdf_est <- hermite_est %>% dens(x_grid, clipped = TRUE)
 cdf_est <- hermite_est %>% cum_prob(x_grid, clipped = TRUE)
-
 spear_est <- hermite_est %>% spearmans()
 
 ## -----------------------------------------------------------------------------

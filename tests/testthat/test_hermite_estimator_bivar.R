@@ -19,8 +19,6 @@ test_that("error trapping for hermite_estimator_bivar work as expected", {
   expect_error(hermite_estimator_bivar(N = 10, exp_weight_lambda = 1.5))
   expect_error(hermite_estimator_bivar(N = 10, exp_weight_lambda = "a"))
   hermite_est <- hermite_estimator_bivar(N = 10, standardize = TRUE)
-  # expect_true(is.na(cum_prob(hermite_est, x=2)))
-  # expect_true(is.na(quant(hermite_est, p=0.5)))
   expect_error(update_sequential(hermite_est, "a"))
   expect_error(update_sequential(hermite_est, c(1,2,3)))
   expect_error(update_batch(hermite_est, c("a","b")))
@@ -718,9 +716,6 @@ test_that("bivariate hermite estimators merge consistently", {
                tolerance = 1e-06)
   expect_equal(sum(hermite_merged$coeff_mat_bivar), 0.3444092,
                tolerance = 1e-04)
-  hermite_est <-
-    hermite_estimator(N = 20, standardize = FALSE, est_type = "bivariate") %>% 
-    update_batch(test_observations_mat)
   hermite_est_1 <-
     hermite_estimator(N = 10, standardize = FALSE, est_type = "bivariate") %>% 
     update_batch(test_observations_mat[1:10,])
