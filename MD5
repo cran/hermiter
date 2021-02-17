@@ -1,7 +1,7 @@
-9d98ba49948f48fcf1a858fba1e7882d *DESCRIPTION
+7b5fba6dbe74a3a1516255f3e9e26034 *DESCRIPTION
 1166e78dfef927f0f471c2ecb5a92a36 *LICENSE
 839d8263e20627bb056a20541c3d6352 *NAMESPACE
-d453c6e9b54c1a4e1fa0a2537c455044 *NEWS.md
+c78e542ee3c17b4f5af791c0d7ca3509 *NEWS.md
 8a5b66a895e5a702e2f4f2bf17d0c72a *R/RcppExports.R
 8ddee805552bfe6974e5e4c38bddad85 *R/hermite_estimator.R
 98a4842328814328f60b219cedcc1246 *R/hermite_estimator_bivar.R
@@ -9,7 +9,7 @@ d453c6e9b54c1a4e1fa0a2537c455044 *NEWS.md
 ca84747a2ab5eae259ed3a7e818fd294 *R/sysdata.rda
 cd926531f4e0d425e1ccf11fcf0422b3 *R/utils.R
 48094a881941a0e264165cba8eab9187 *README.md
-4ba2856651dfa9c7486bfbccac73266e *build/partial.rdb
+c4d621cf4ca9435c863979611792ce18 *build/partial.rdb
 e7e2ac8858acd61bf656d1195167ef4c *build/vignette.rds
 dba99e63e1b5630dab4b3b20ff83ec4f *inst/doc/hermiter.R
 20bcc7f1620d0041454442ebd54435c4 *inst/doc/hermiter.Rmd
@@ -64,8 +64,8 @@ fc15719c21ae4bd1bf22a48b5a693e8f *man/update_sequential.hermite_estimator_univar
 7d0d78195eb91a106eac4b83205f6005 *src/RcppExports.cpp
 4bff0e8c05a3be7a21827e73b4669496 *src/hermite_utils.cpp
 85afc7f74bc8f1d8b9cbac175962a562 *tests/testthat.R
-d466d8637b11c63ba71964b22eb952e9 *tests/testthat/test_hermite_estimator.R
-7a71b1b76a98a582c1a4b6166907644c *tests/testthat/test_hermite_estimator_bivar.R
+15cb68951e69333bf13c035759666e8f *tests/testthat/test_hermite_estimator.R
+2b073ba97fe5d404b38d56fd91a695c5 *tests/testthat/test_hermite_estimator_bivar.R
 e2f4eddc4a0534f690ecb06a85a16918 *vignettes/cdf.gif
 2d633d327d7961ebd7efd9a71a24dd9f *vignettes/cdf_bivar_static.png
 87aef6d7beee8c4e171ed49852fab514 *vignettes/cdf_static.png
