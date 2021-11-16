@@ -158,29 +158,30 @@ sig_x <- 1
 sig_y <- 1
 num_obs <- 4000
 rho <- 0.5
-observations_mat <- mvtnorm::rmvnorm(n=num_obs,mean=rep(0,2),sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2), 
-                                                      nrow=2,ncol=2, 
-                                                      byrow = TRUE))
+observations_mat <- mvtnorm::rmvnorm(n=num_obs,mean=rep(0,2),
+          sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2), 
+          nrow=2,ncol=2, byrow = TRUE))
 
-hermite_est <- hermite_estimator(N = 20, standardize = TRUE, 
+hermite_est <- hermite_estimator(N = 30, standardize = TRUE, 
                                  est_type = "bivariate") 
 hermite_est <-  update_batch(hermite_est,observations_mat)
-
 vals <- seq(-5,5,by=0.25)
 x_grid <- as.matrix(expand.grid(X=vals, Y=vals))
 pdf_est <- dens(hermite_est,x_grid)
 cdf_est <- cum_prob(hermite_est,x_grid)
 spear_est <- spearmans(hermite_est)
+kendall_est <- kendall(hermite_est)
 
 ## -----------------------------------------------------------------------------
 sig_x <- 1
 sig_y <- 1
 num_obs <- 4000
 rho <- 0.5
-observations_mat <- mvtnorm::rmvnorm(n=num_obs,mean=rep(0,2),sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2), nrow=2, ncol=2, 
-                                                                byrow = TRUE))
+observations_mat <- mvtnorm::rmvnorm(n=num_obs,mean=rep(0,2),
+        sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2), 
+          nrow=2, ncol=2, byrow = TRUE))
 
-hermite_est <- hermite_estimator(N = 20, standardize = TRUE, 
+hermite_est <- hermite_estimator(N = 30, standardize = TRUE, 
                                  est_type = "bivariate") 
 hermite_est <-  hermite_est %>% update_batch(observations_mat)
 
@@ -189,19 +190,20 @@ x_grid <- as.matrix(expand.grid(X=vals, Y=vals))
 pdf_est <- hermite_est %>% dens(x_grid, clipped = TRUE)
 cdf_est <- hermite_est %>% cum_prob(x_grid, clipped = TRUE)
 spear_est <- hermite_est %>% spearmans()
+kendall_est <- hermite_est %>% kendall()
 
 ## -----------------------------------------------------------------------------
-actual_pdf <-mvtnorm::dmvnorm(x_grid,mean=rep(0,2),sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2), nrow=2,ncol=2, 
-                                                                byrow = TRUE))
-
+actual_pdf <-mvtnorm::dmvnorm(x_grid,mean=rep(0,2),
+            sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2), 
+                           nrow=2,ncol=2, byrow = TRUE))
 actual_cdf <- rep(NA,nrow(x_grid))
 for (row_idx in seq_len(nrow(x_grid))) {
-  actual_cdf[row_idx] <-  mvtnorm::pmvnorm(lower = c(-Inf,-Inf),upper=as.numeric(x_grid[row_idx,]),mean=rep(0,2),sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2), nrow=2,ncol=2, 
-                                                                                                                                byrow = TRUE))
+  actual_cdf[row_idx] <-  mvtnorm::pmvnorm(lower = c(-Inf,-Inf),
+    upper=as.numeric(x_grid[row_idx,]),mean=rep(0,2),sigma = matrix(c(sig_x^2, 
+        rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2), nrow=2,ncol=2,byrow = TRUE))
 }
-
 actual_spearmans <- cor(observations_mat,method = "spearman")[1,2]
-
+actual_kendall <- cor(observations_mat,method = "kendall")[1,2]
 df_pdf_cdf <- data.frame(x_grid,pdf_est,cdf_est,actual_pdf,actual_cdf)
 
 ## -----------------------------------------------------------------------------
@@ -271,8 +273,10 @@ merged_estimates
 # Estimate probability densities, cumulative probabilities and quantiles
 dens_vals <- merged_estimates[,.(dens_est = list(dens(herm_comb[[1]],
                                             c(0.5,1,1.5,2)))),by=.(dist_name)]
-cum_prob_vals <- merged_estimates[,.(cum_prob_est = list(cum_prob(herm_comb[[1]],c(0.5,1,1.5,2)))),by=.(dist_name)]
-quantile_vals <- merged_estimates[,.(quantile_est = list(quant(herm_comb[[1]],c(0.25,0.5,0.75)))),by=.(dist_name)]
+cum_prob_vals <- merged_estimates[,.(cum_prob_est = list(cum_prob(herm_comb[[1]]
+                                            ,c(0.5,1,1.5,2)))),by=.(dist_name)]
+quantile_vals <- merged_estimates[,.(quantile_est = list(quant(herm_comb[[1]],
+                                            c(0.25,0.5,0.75)))),by=.(dist_name)]
 
 ## -----------------------------------------------------------------------------
 # Prepare Test Data
@@ -291,7 +295,8 @@ for (i in seq_len(5)) {
 
 ## -----------------------------------------------------------------------------
 # Group observations by distribution and idx and create Hermite estimators
-estimates <- test_data %>% group_by(dist_name,idx) %>% summarise(herm_est = list(hermite_estimator(N=10,standardize = TRUE) %>% update_batch(observations)))
+estimates <- test_data %>% group_by(dist_name,idx) %>% summarise(herm_est = 
+list(hermite_estimator(N=10,standardize = TRUE) %>% update_batch(observations)))
 estimates
 
 ## -----------------------------------------------------------------------------
@@ -317,16 +322,21 @@ dens_vals <- dens_vals %>%
                                               mean(abs(dens_est-dens_actual)))
 cum_prob_vals <- cum_prob_vals %>%
   rowwise() %>% mutate(cum_prob_actual = list(do.call(paste0("p",dist_name),
-                list(c(0.5,1,1.5,2)))))%>% mutate(mean_abs_error_cum_prob = mean(abs(cum_prob_est-cum_prob_actual)))
+                list(c(0.5,1,1.5,2)))))%>% mutate(mean_abs_error_cum_prob = 
+                                      mean(abs(cum_prob_est-cum_prob_actual)))
 quantile_vals <- quantile_vals %>%
   rowwise() %>% mutate(quantile_actual= list(do.call(paste0("q",dist_name),
-            list(c(0.25,0.5,0.75)))))%>% mutate(mean_abs_error_quantiles = mean(abs(quantile_est-quantile_actual)))
-mean_abs_error_summary <- data.frame(dist_name=dens_vals$dist_name, mean_abs_error_density=dens_vals$mean_abs_error_density, mean_abs_error_cum_prob=cum_prob_vals$mean_abs_error_cum_prob,
-              mean_abs_error_quantiles=quantile_vals$mean_abs_error_quantiles)
+            list(c(0.25,0.5,0.75)))))%>% mutate(mean_abs_error_quantiles = 
+                                    mean(abs(quantile_est-quantile_actual)))
+mean_abs_error_summary <- data.frame(dist_name=dens_vals$dist_name, 
+  mean_abs_error_density=dens_vals$mean_abs_error_density, 
+  mean_abs_error_cum_prob=cum_prob_vals$mean_abs_error_cum_prob,
+  mean_abs_error_quantiles=quantile_vals$mean_abs_error_quantiles)
 
 ## -----------------------------------------------------------------------------
-datatable(mean_abs_error_summary) %>% formatRound(columns =c("mean_abs_error_density","mean_abs_error_cum_prob",
-                                        "mean_abs_error_quantiles"),digits = 3)
+datatable(mean_abs_error_summary) %>% formatRound(columns = 
+  c("mean_abs_error_density","mean_abs_error_cum_prob", 
+    "mean_abs_error_quantiles"),digits = 3)
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  # Not Run. Copy and paste into app.R and run.
@@ -454,17 +464,21 @@ res_q <- res_q %>% mutate(idx_vals=idx_vals*100)
 ## ----eval=FALSE---------------------------------------------------------------
 #  # Visualize Results for PDF (Not run, requires gganimate, gifski and transformr
 #  # packages)
-#  p <- ggplot(res,aes(x=x)) + geom_line(aes(y=pdf_est_vals, colour="Estimated")) + geom_line(aes(y=actual_pdf_vals, colour="Actual")) +
+#  p <- ggplot(res,aes(x=x)) + geom_line(aes(y=pdf_est_vals, colour="Estimated")) +
+#    geom_line(aes(y=actual_pdf_vals, colour="Actual")) +
 #    scale_colour_manual("",
 #                        breaks = c("Estimated", "Actual"),
-#                        values = c("blue", "black")) + ylab("Probability Density") +transition_states(idx_vals,transition_length = 2,state_length = 1) +
+#                        values = c("blue", "black")) +
+#    ylab("Probability Density") +
+#    transition_states(idx_vals,transition_length = 2,state_length = 1) +
 #    ggtitle('Observation index {closest_state}')
 #  anim_save("pdf.gif",p)
 
 ## ----eval=FALSE---------------------------------------------------------------
 #  # Visualize Results for CDF (Not run, requires gganimate, gifski and transformr
 #  # packages)
-#  p <- ggplot(res,aes(x=x)) + geom_line(aes(y=cdf_est_vals, colour="Estimated")) + geom_line(aes(y=actual_cdf_vals, colour="Actual")) +
+#  p <- ggplot(res,aes(x=x)) + geom_line(aes(y=cdf_est_vals, colour="Estimated")) +
+#    geom_line(aes(y=actual_cdf_vals, colour="Actual")) +
 #    scale_colour_manual("",
 #                        breaks = c("Estimated", "Actual"),
 #                        values = c("blue", "black")) +
@@ -519,8 +533,9 @@ res_q <- res_q %>% mutate(idx_vals=idx_vals*100)
 #      sig_y <- 1
 #      num_obs <- 100
 #      rho <- 2 *sin(pi/6 * input$spearmans)
-#      observations_mat <- mvtnorm::rmvnorm(n=num_obs,mean=rep(0,2),sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2), nrow=2,ncol=2,
-#                                                                  byrow = TRUE))
+#      observations_mat <- mvtnorm::rmvnorm(n=num_obs,mean=rep(0,2),
+#      sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2),
+#                     nrow=2,ncol=2, byrow = TRUE))
 #      return(observations_mat)
 #    })
 #    updated_spear_calc <- reactive({
@@ -537,8 +552,9 @@ res_q <- res_q %>% mutate(idx_vals=idx_vals*100)
 #      vals <- seq(-5,5,by=0.25)
 #      x_grid <- as.matrix(expand.grid(X=vals, Y=vals))
 #      rho <- 2 *sin(pi/6 * input$spearmans)
-#      actual_pdf <-mvtnorm::dmvnorm(x_grid,mean=rep(0,2),sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2), nrow=2,ncol=2,
-#                                                                  byrow = TRUE))
+#      actual_pdf <-mvtnorm::dmvnorm(x_grid,mean=rep(0,2),
+#        sigma = matrix(c(sig_x^2,rho*sig_x*sig_y,rho*sig_x*sig_y,sig_y^2),
+#                       nrow=2,ncol=2, byrow = TRUE))
 #      df_pdf <- data.frame(x_grid,actual_pdf)
 #      p1 <- ggplot(df_pdf) + geom_tile(aes(X, Y, fill= actual_pdf)) +
 #        scale_fill_gradient2(low="blue", mid="cyan", high="purple",
