@@ -5,11 +5,18 @@
 \title{A class to sequentially estimate bivariate pdfs, cdfs and nonparametric 
 correlations}
 \usage{
-hermite_estimator_bivar(N = 30, standardize = TRUE, exp_weight_lambda = NA)
+hermite_estimator_bivar(
+  N = 30,
+  standardize = TRUE,
+  exp_weight_lambda = NA,
+  observations = c()
+)
 }
 \arguments{
-\item{N}{An integer between 0 and 75. The Hermite series based estimator
-is truncated at N+1 terms.}
+\item{N}{An integer between 0 and 75. The upper bound has been chosen
+as a value that yields an estimator that is reasonably fast and that remains 
+robust to numerical issues. The Hermite series based estimator is truncated 
+at N+1 terms.}
 
 \item{standardize}{A boolean value. Determines whether the observations are
 standardized, a transformation which often improves performance.}
@@ -17,6 +24,10 @@ standardized, a transformation which often improves performance.}
 \item{exp_weight_lambda}{A numerical value between 0 and 1. This parameter
 controls the exponential weighting of the Hermite series based estimator.
 If this parameter is NA, no exponential weighting is applied.}
+
+\item{observations}{A numeric matrix. A matrix of bivariate observations to 
+be incorporated into the estimator. Each row corresponds to a single 
+bivariate observation.}
 }
 \value{
 An S3 object of class hermite_estimator_bivar, with methods for
@@ -35,9 +46,6 @@ coefficient. It is well suited to streaming data (both stationary and
 non-stationary) and to efficient estimation in the context of massive or 
 distributed data sets. Indeed,estimators constructed on different subsets 
 of a distributed data set can be consistently merged.
-}
-\examples{
-hermite_est <- hermite_estimator_bivar(N = 30, standardize = TRUE)
 }
 \author{
 Michael Stephanou <michael.stephanou@gmail.com>

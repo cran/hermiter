@@ -1,3 +1,30 @@
+# hermiter v2.2.0
+
+## Breaking changes
+
+* The interface of `hermiter` has been simplified. The `update_batch` method 
+has been removed in favor of providing the ability to initialize the 
+`hermite_estimator` with an initial batch of observations. Several internal 
+methods are no longer exported in the interests of simplicity.
+* The default values of N have been optimized for different settings. For 
+univariate, non-exponentially weighted estimators, the default is now N = 50. 
+For univariate, exponentially weighted estimators, the default is now N = 20. 
+For bivariate, non-exponentially weighted estimators, the default is now N = 30.
+Finally, For bivariate, exponentially weighted estimators, the default is now 
+N = 20.
+
+## Major enhancements
+
+* Parallel implementation of batch updating using RcppParallel provides 
+significant performance improvements on multicore systems. Note that this 
+can be disabled by using options(hermiter.parallel = FALSE).
+
+## Minor improvements and bug fixes
+
+* Updated citation information.
+* Additional test cases have been added.
+* Bug fixes for series acceleration algorithm.
+
 # hermiter v2.1.0
 
 ## New features

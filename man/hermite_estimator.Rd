@@ -7,15 +7,18 @@ with quantile functions in the univariate setting and nonparametric
 correlations in the bivariate setting.}
 \usage{
 hermite_estimator(
-  N = 30,
+  N = NA,
   standardize = TRUE,
   exp_weight_lambda = NA,
-  est_type = "univariate"
+  est_type = "univariate",
+  observations = c()
 )
 }
 \arguments{
-\item{N}{An integer between 0 and 75. The Hermite series based estimator
-is truncated at N+1 terms.}
+\item{N}{An integer between 0 and 75. The upper bound has been chosen
+as a value that yields an estimator that is reasonably fast and that remains 
+robust to numerical issues. The Hermite series based estimator is truncated 
+at N+1 terms.}
 
 \item{standardize}{A boolean value. Determines whether the observations are
 standardized, a transformation which often improves performance.}
@@ -25,6 +28,11 @@ controls the exponential weighting of the Hermite series based estimator.
 If this parameter is NA, no exponential weighting is applied.}
 
 \item{est_type}{A string value. Options are "univariate" or "bivariate".}
+
+\item{observations}{A numeric vector or a numeric matrix. Note that for 
+univariate estimators, x is a numeric vector of observations to be 
+incorporated. For bivariate estimators, x is a numeric matrix with n rows for
+n observations and 2 columns.}
 }
 \value{
 An S3 object of class hermite_estimator_univar or 
@@ -33,16 +41,26 @@ hermite_estimator_bivar.
 \description{
 The hermite_estimator class provides a unified interface to the univariate 
 and bivariate Hermite series based estimators, leveraging generic methods and
-multiple dispatch. Methods are included for the sequential or one-pass batch 
+S3 dispatch. Methods are included for the sequential or one-pass batch 
 estimation of the full probability density function and cumulative 
 distribution function in the univariate and bivariate settings. Sequential 
 or one-pass batch estimation methods are also provided for the full quantile 
-function in the univariate setting and the Spearman's rank correlation 
-estimator in the bivariate setting.
+function in the univariate setting along with the Spearman and Kendall 
+correlation coefficients in the bivariate setting. Note that RcppParallel is
+utilized to speed up batch updating in the univariate case. If one wishes to 
+switch to serial batch updating (typically slower), utilize 
+options(hermiter.parallel = FALSE).
 }
 \examples{
-hermite_est <- hermite_estimator(N = 30, standardize = TRUE,
+\dontrun{
+hermite_est <- hermite_estimator(N = 50, standardize = TRUE,
 est_type="univariate")
+hermite_est <- hermite_estimator(N = 50, standardize = TRUE,
+est_type="univariate", observations = c(1,2,3))
+hermite_est <- hermite_estimator(N = 30, standardize = TRUE, 
+est_type="bivariate", observations = matrix(c(1,1,2,2,3,3), 
+nrow=3, ncol=2,byrow=TRUE))
+}
 }
 \author{
 Michael Stephanou <michael.stephanou@gmail.com>

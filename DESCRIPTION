@@ -2,8 +2,9 @@ Package: hermiter
 Title: Efficient Sequential and Batch Estimation of Univariate and
         Bivariate Probability Density Functions and Cumulative
         Distribution Functions along with Quantiles (Univariate) and
-        Spearman's Correlation (Bivariate)
-Version: 2.1.0
+        Nonparametric Correlation (Bivariate)
+Version: 2.2.0
+Date: 2022-11-12
 Authors@R: c(
   person("Michael","Stephanou",role=c("aut","cre"), email="michael.stephanou@gmail.com"),
   person("Melvin","Varughese",role="ctb"))
@@ -20,9 +21,10 @@ Description: Facilitates estimation of full univariate and bivariate
   Stephanou, Michael and Varughese, Melvin. "On the properties of Hermite series based distribution function estimators." Metrika (2020) <doi:10.1007/s00184-020-00785-z> and Stephanou, Michael and Varughese, Melvin. "Sequential estimation of Spearman rank correlation using Hermite series estimators." Journal of Multivariate Analysis (2021) <doi:10.1016/j.jmva.2021.104783>.
 License: MIT + file LICENSE
 Depends: R (>= 3.5.0)
-Imports: Rcpp (>= 1.0.5), methods
-LinkingTo: Rcpp, BH
-RoxygenNote: 7.1.2
+Imports: Rcpp (>= 1.0.5), methods, RcppParallel (>= 5.1.1)
+LinkingTo: Rcpp, BH, RcppParallel
+SystemRequirements: GNU make
+RoxygenNote: 7.2.2
 Suggests: testthat, magrittr, knitr, rmarkdown, dplyr, data.table,
         ggplot2, DT, mvtnorm, patchwork
 VignetteBuilder: knitr
@@ -30,6 +32,6 @@ ByteCompile: true
 URL: https://github.com/MikeJaredS/hermiter
 BugReports: https://github.com/MikeJaredS/hermiter/issues
 NeedsCompilation: yes
-Packaged: 2021-11-16 15:59:18 UTC; mjste
+Packaged: 2022-11-13 14:04:30 UTC; mjste
 Repository: CRAN
-Date/Publication: 2021-11-16 17:10:02 UTC
+Date/Publication: 2022-11-15 21:30:02 UTC

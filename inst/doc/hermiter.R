@@ -29,25 +29,14 @@ hermite_est <- hermite_estimator(N=10, standardize=TRUE,
 
 ## -----------------------------------------------------------------------------
 observations <- rlogis(n=1000)
-hermite_est <- hermite_estimator(N=10, standardize=TRUE)
-hermite_est <- update_batch(hermite_est,observations)
+hermite_est <- hermite_estimator(N=10, standardize=TRUE, observations = 
+                                   observations)
 
 ## -----------------------------------------------------------------------------
 observations <- matrix(data = rnorm(2000),nrow = 1000, ncol=2)
 hermite_est <- hermite_estimator(N=10, standardize=TRUE, 
-                                 est_type = "bivariate")
-hermite_est <- update_batch(hermite_est,observations)
-
-## -----------------------------------------------------------------------------
-observations <- rlogis(n=1000)
-hermite_est <- hermite_estimator(N=10, standardize=TRUE)
-hermite_est <- hermite_est %>% update_batch(observations)
-
-## -----------------------------------------------------------------------------
-observations <- matrix(data = rnorm(2000),nrow = 1000, ncol=2)
-hermite_est <- hermite_estimator(N=10, standardize=TRUE, 
-                                 est_type = "bivariate")
-hermite_est <- hermite_est %>% update_batch(observations)
+                                 est_type = "bivariate", observations = 
+                                   observations)
 
 ## -----------------------------------------------------------------------------
 observations <- rlogis(n=1000)
@@ -82,27 +71,27 @@ for (idx in seq_len(nrow(observations))) {
 ## -----------------------------------------------------------------------------
 observations_1 <- rlogis(n=1000)
 observations_2 <- rlogis(n=1000)
-hermite_est_1 <- hermite_estimator(N=10, standardize=TRUE) %>% 
-  update_batch(observations_1)
-hermite_est_2 <- hermite_estimator(N=10, standardize=TRUE) %>% 
-  update_batch(observations_2)
+hermite_est_1 <- hermite_estimator(N=10, standardize=TRUE, 
+                                   observations = observations_1)
+hermite_est_2 <- hermite_estimator(N=10, standardize=TRUE, 
+                                   observations = observations_2)
 hermite_est_merged <- merge_hermite(list(hermite_est_1,hermite_est_2))
 
 ## -----------------------------------------------------------------------------
 observations_1 <- matrix(data = rnorm(2000),nrow = 1000, ncol=2)
 observations_2 <- matrix(data = rnorm(2000),nrow = 1000, ncol=2)
 hermite_est_1 <- hermite_estimator(N=10, standardize=TRUE, 
-                                 est_type = "bivariate") %>% 
-  update_batch(observations_1)
+                                 est_type = "bivariate", 
+                                 observations = observations_1)
 hermite_est_2 <- hermite_estimator(N=10, standardize=TRUE, 
-                                 est_type = "bivariate") %>% 
-  update_batch(observations_2)
+                                 est_type = "bivariate", 
+                                 observations = observations_2)
 hermite_est_merged <- merge_hermite(list(hermite_est_1,hermite_est_2))
 
 ## -----------------------------------------------------------------------------
 observations <- rlogis(n=2000)
-hermite_est <- hermite_estimator(N=10, standardize=TRUE)
-hermite_est <- update_batch(hermite_est, observations)
+hermite_est <- hermite_estimator(N=10, standardize=TRUE, 
+                                 observations = observations)
 
 x <- seq(-15,15,0.1)
 pdf_est <- dens(hermite_est,x)
@@ -113,8 +102,8 @@ quantile_est <- quant(hermite_est,p)
 
 ## -----------------------------------------------------------------------------
 observations <- rlogis(n=2000)
-hermite_est <- hermite_estimator(N=10, standardize=TRUE)
-hermite_est <- hermite_est %>% update_batch(observations)
+hermite_est <- hermite_estimator(N=10, standardize=TRUE, 
+                                 observations = observations)
 
 x <- seq(-15,15,0.1)
 pdf_est <- hermite_est %>% dens(x)
@@ -163,8 +152,8 @@ observations_mat <- mvtnorm::rmvnorm(n=num_obs,mean=rep(0,2),
           nrow=2,ncol=2, byrow = TRUE))
 
 hermite_est <- hermite_estimator(N = 30, standardize = TRUE, 
-                                 est_type = "bivariate") 
-hermite_est <-  update_batch(hermite_est,observations_mat)
+                                 est_type = "bivariate", 
+                                 observations = observations_mat) 
 vals <- seq(-5,5,by=0.25)
 x_grid <- as.matrix(expand.grid(X=vals, Y=vals))
 pdf_est <- dens(hermite_est,x_grid)
@@ -182,8 +171,8 @@ observations_mat <- mvtnorm::rmvnorm(n=num_obs,mean=rep(0,2),
           nrow=2, ncol=2, byrow = TRUE))
 
 hermite_est <- hermite_estimator(N = 30, standardize = TRUE, 
-                                 est_type = "bivariate") 
-hermite_est <-  hermite_est %>% update_batch(observations_mat)
+                                 est_type = "bivariate", 
+                                 observations = observations_mat) 
 
 vals <- seq(-5,5,by=0.25)
 x_grid <- as.matrix(expand.grid(X=vals, Y=vals))
@@ -259,7 +248,7 @@ setDT(test_data)
 ## -----------------------------------------------------------------------------
 # Group observations by distribution and idx and create Hermite estimators
 estimates <- test_data[,.(herm_est = list(hermite_estimator(N=10,
-             standardize = TRUE) %>% update_batch(observations))),
+             standardize = TRUE, observations = observations))),
              by=.(dist_name,idx)]
 estimates
 
@@ -296,7 +285,7 @@ for (i in seq_len(5)) {
 ## -----------------------------------------------------------------------------
 # Group observations by distribution and idx and create Hermite estimators
 estimates <- test_data %>% group_by(dist_name,idx) %>% summarise(herm_est = 
-list(hermite_estimator(N=10,standardize = TRUE) %>% update_batch(observations)))
+list(hermite_estimator(N=10,standardize = TRUE, observations = observations)))
 estimates
 
 ## -----------------------------------------------------------------------------

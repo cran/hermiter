@@ -1,3 +1,7 @@
+## to avoid ASAN/UBSAN errors on CRAN, following advice of Kevin Ushey
+## e.g. https://github.com/RcppCore/RcppParallel/issues/169
+Sys.setenv(RCPP_PARALLEL_BACKEND = "tinythread")
+
 context("hermite_estimator_univar")
 library(hermiter)
 library(magrittr)
@@ -25,14 +29,8 @@ test_that("error trapping for hermite_estimator work as expected", {
   expect_true(is.na(quant(hermite_est, p=0.5)))
   expect_error(update_sequential(hermite_est, "a"))
   expect_error(update_sequential(hermite_est, c(1,2)))
-  expect_error(update_batch(hermite_est, c("a","b")))
-  expect_error(update_batch(hermite_est, c()))
-  expect_error(update_batch(hermite_est, numeric(0)))
-  hermite_est <- hermite_estimator(N = 10, standardize = TRUE, 
-                                   exp_weight_lambda = 0.05)
-  expect_error(update_batch(hermite_est, c(1,2,3)))
-  hermite_est <- hermite_estimator(N = 10, standardize = TRUE)
-  hermite_est <- update_batch(hermite_est,c(1,2,3))
+  expect_error(hermite_estimator(N = 10, standardize = TRUE,
+                                 observations = c("a","b")))
   expect_error(dens(hermite_est, "a"))
   expect_error(dens(hermite_est, numeric(0)))
   expect_error(cum_prob(hermite_est, "a"))
@@ -46,30 +44,28 @@ test_that("error trapping for hermite_estimator work as expected", {
   expect_error(quant(hermite_est, p=2))
   expect_error(quant(hermite_est, p=-0.5))
   expect_error(merge_hermite(list()))
-  hermite_est <- hermite_estimator(N = 10, standardize = FALSE)
-  hermite_est <- update_batch(hermite_est,c(1,2,3))
+  hermite_est <- hermite_estimator(N = 10, standardize = FALSE, 
+                                   observations = c(1,2,3))
   expect_error(quant(hermite_est, p=0.5))
   expect_error(spearmans(hermite_est))
   # Univariate estimator specific error trapping tests
-  expect_error(hermite_estimator_univar(N = 10, est_type="other"))
-  expect_error(hermite_estimator_univar(N = "a", standardize = TRUE))
-  expect_error(hermite_estimator_univar(N = 80, standardize = TRUE))
-  expect_error(hermite_estimator_univar(N = -1, standardize = TRUE))
-  expect_error(hermite_estimator_univar(N = 10, standardize = 8))
-  expect_error(hermite_estimator_univar(N = 10, exp_weight_lambda = -0.5))
-  expect_error(hermite_estimator_univar(N = 10, exp_weight_lambda = 1.5))
-  expect_error(hermite_estimator_univar(N = 10, exp_weight_lambda = "a"))
-  hermite_est <- hermite_estimator_univar(N = 10, standardize = TRUE)
+  expect_error(hermite_estimator(N = 10, est_type="other"))
+  expect_error(hermite_estimator(N = "a", standardize = TRUE))
+  expect_error(hermite_estimator(N = 80, standardize = TRUE))
+  expect_error(hermite_estimator(N = -1, standardize = TRUE))
+  expect_error(hermite_estimator(N = 10, standardize = 8))
+  expect_error(hermite_estimator(N = 10, exp_weight_lambda = -0.5))
+  expect_error(hermite_estimator(N = 10, exp_weight_lambda = 1.5))
+  expect_error(hermite_estimator(N = 10, exp_weight_lambda = "a"))
+  hermite_est <- hermite_estimator(N = 10, standardize = TRUE)
   expect_true(is.na(cum_prob(hermite_est, x=2)))
   expect_true(is.na(quant(hermite_est, p=0.5)))
   expect_error(update_sequential(hermite_est, "a"))
   expect_error(update_sequential(hermite_est, c(1,2)))
-  expect_error(update_batch(hermite_est, c("a","b")))
-  hermite_est <- hermite_estimator_univar(N = 10, standardize = TRUE, 
-                                   exp_weight_lambda = 0.05)
-  expect_error(update_batch(hermite_est, c(1,2,3)))
-  hermite_est <- hermite_estimator_univar(N = 10, standardize = TRUE)
-  hermite_est <- update_batch(hermite_est,c(1,2,3))
+  expect_error(hermite_estimator(N = 10, standardize = TRUE, 
+                                        observations = c("a","b")))
+  hermite_est <- hermite_estimator(N = 10, standardize = TRUE, 
+                                          observations = c(1,2,3))
   expect_error(dens(hermite_est, "a"))
   expect_error(cum_prob(hermite_est, "a"))
   expect_error(quant(hermite_est, "a"))
@@ -77,12 +73,12 @@ test_that("error trapping for hermite_estimator work as expected", {
   expect_error(cum_prob(hermite_est, c()))
   expect_error(quant(hermite_est, c()))
   expect_error(merge_hermite_univar(list()))
-  hermite_est <- hermite_estimator_univar(N = 10, standardize = FALSE)
-  hermite_est <- update_batch(hermite_est,c(1,2,3))
+  hermite_est <- hermite_estimator(N = 10, standardize = FALSE, 
+                                          observations = c(1,2,3))
   expect_error(quant(hermite_est, p=0.5))
   expect_error(spearmans(hermite_est))
   expect_error(kendall(hermite_est))
-  hermite_est_1 <- hermite_estimator_univar(N = 10, standardize = TRUE)
+  hermite_est_1 <- hermite_estimator(N = 10, standardize = TRUE)
   hermite_est_2 <- hermite_estimator_bivar(N = 10, standardize = TRUE)
   expect_error(merge_pair(hermite_est_1,hermite_est_2))
   expect_error(merge_hermite(list(hermite_est_1,hermite_est_2)))
@@ -150,18 +146,17 @@ test_that("batch updates of hermite_estimator work as expected", {
       -0.01767049,
       -0.02434694
     )
-  hermite_est <- hermite_estimator(N = 10, standardize = TRUE)
-  hermite_est <- hermite_est %>% update_batch(test_observations)
+  hermite_est <- hermite_estimator(N = 10, standardize = TRUE, 
+                                   observations = test_observations)
   expect_equal(target_coeff_vec_standardized,
                hermite_est$coeff_vec,
                tolerance = get_eps())
   expect_equal(mean(test_observations), 
                hermite_est$running_mean,tolerance = get_eps())
   expect_equal(sd(test_observations),sqrt(hermite_est$running_variance / 
-                                  (hermite_est$num_obs-1)),tolerance =
-                 get_eps())
-  hermite_est <- hermite_estimator(N = 10, standardize = FALSE)
-  hermite_est <- hermite_est %>% update_batch(test_observations)
+(hermite_est$num_obs-1)),tolerance = get_eps())
+  hermite_est <- hermite_estimator(N = 10, standardize = FALSE, 
+                                   observations = test_observations)
   expect_equal(target_coeff_vec_unstandardized,
                hermite_est$coeff_vec,
                tolerance = get_eps())
@@ -369,17 +364,17 @@ test_that("hermite_estimators merge consistently", {
     2.214421
   )
   hermite_est <-
-    hermite_estimator(N = 10, standardize = FALSE) %>% 
-    update_batch(test_observations)
+    hermite_estimator(N = 10, standardize = FALSE, 
+                      observations = test_observations)
   hermite_est_1 <-
-    hermite_estimator(N = 10, standardize = FALSE) %>% 
-    update_batch(test_observations[1:10])
+    hermite_estimator(N = 10, standardize = FALSE, 
+                      observations = test_observations[1:10])
   hermite_est_2 <-
-    hermite_estimator(N = 10, standardize = FALSE) %>% 
-    update_batch(test_observations[11:20])
+    hermite_estimator(N = 10, standardize = FALSE, 
+                      observations = test_observations[11:20])
   hermite_est_3 <-
-    hermite_estimator(N = 10, standardize = FALSE) %>% 
-    update_batch(test_observations[21:30])
+    hermite_estimator(N = 10, standardize = FALSE, 
+                      observations = test_observations[21:30])
   hermite_merged <-
     merge_hermite_univar(list(hermite_est_1, hermite_est_2, hermite_est_3))
   expect_equal(hermite_est, hermite_merged, tolerance = get_eps())
@@ -387,18 +382,17 @@ test_that("hermite_estimators merge consistently", {
     merge_hermite(list(hermite_est_1, hermite_est_2, hermite_est_3))
   expect_equal(hermite_est, hermite_merged, tolerance = get_eps())
   hermite_est <-
-    hermite_estimator(N = 10, standardize = TRUE) %>% 
-    update_batch(test_observations)
+    hermite_estimator(N = 10, standardize = TRUE, 
+                      observations = test_observations)
   hermite_est_1 <-
-    hermite_estimator(N = 10, standardize = TRUE) %>% 
-    update_batch(test_observations[1:10])
+    hermite_estimator(N = 10, standardize = TRUE, 
+                      observations = test_observations[1:10])
   hermite_est_2 <-
-    hermite_estimator(N = 10, standardize = TRUE) %>% 
-    update_batch(test_observations[11:20])
+    hermite_estimator(N = 10, standardize = TRUE, 
+                      observations = test_observations[11:20])
   hermite_est_3 <-
-    hermite_estimator(N = 10, standardize = TRUE) %>% 
-    update_batch(test_observations[21:30])
-  
+    hermite_estimator(N = 10, standardize = TRUE, 
+                      observations = test_observations[21:30])
   hermite_merged <-
     merge_hermite(list(hermite_est_1))
   expect_equal(hermite_merged,hermite_est_1)
@@ -434,14 +428,14 @@ test_that("hermite_estimators merge consistently", {
   expect_equal(hermite_merged$coeff_vec, target_coeffs, 
                tolerance = get_eps())
   hermite_est <-
-    hermite_estimator(N = 10, standardize = TRUE) %>% 
-    update_batch(test_observations)
+    hermite_estimator(N = 10, standardize = TRUE, 
+                      observations = test_observations)
   hermite_est_1 <-
-    hermite_estimator(N = 10, standardize = TRUE) %>% 
-    update_batch(test_observations[1:15])
+    hermite_estimator(N = 10, standardize = TRUE, 
+                      observations = test_observations[1:15])
   hermite_est_2 <-
-    hermite_estimator(N = 10, standardize = TRUE) %>% 
-    update_batch(test_observations[16:30])
+    hermite_estimator(N = 10, standardize = TRUE, 
+                      observations = test_observations[16:30])
   hermite_merged <-
     merge_pair(hermite_est_1, hermite_est_2)
   expect_equal(hermite_est$running_mean, hermite_merged$running_mean, 
@@ -466,16 +460,16 @@ test_that("hermite_estimators merge consistently", {
   expect_equal(hermite_merged$coeff_vec, target_coeffs, 
                tolerance = get_eps())
   hermite_est_1 <-
-    hermite_estimator(N = 10, standardize = FALSE) %>% 
-    update_batch(test_observations[1:10])
+    hermite_estimator(N = 10, standardize = FALSE, 
+                      observations = test_observations[1:10])
   hermite_est_2 <-
-    hermite_estimator(N = 20, standardize = FALSE) %>% 
-    update_batch(test_observations[11:20])
+    hermite_estimator(N = 20, standardize = FALSE, 
+                      observations = test_observations[11:20])
   hermite_est_3 <-
-    hermite_estimator(N = 10, standardize = TRUE) %>% 
-    update_batch(test_observations[21:30])
+    hermite_estimator(N = 10, standardize = TRUE, 
+                      observations = test_observations[21:30])
   hermite_est_4 <-
-    hermite_estimator(N = 10, standardize = FALSE,exp_weight_lambda = 0.01)
+    hermite_estimator(N = 10, standardize = FALSE, exp_weight_lambda = 0.01)
   hermite_est_5 <-
     hermite_estimator(N = 20, standardize = TRUE)
   expect_error(merge_hermite(list(hermite_est_1, hermite_est_2)))
@@ -523,8 +517,8 @@ test_that("probability density estimation works as expected", {
   )
   x <- seq(-2, 2, by = 0.5)
   hermite_est <-
-    hermite_estimator(N = 10, standardize = FALSE) %>% 
-    update_batch(test_observations)
+    hermite_estimator(N = 10, standardize = FALSE, 
+                      observations = test_observations)
   pdf_vals <- hermite_est %>% dens(x, accelerate_series = FALSE)
   target_pdf_vals_unstandardized <-
     c(
@@ -541,8 +535,8 @@ test_that("probability density estimation works as expected", {
   expect_equal(pdf_vals, target_pdf_vals_unstandardized, tolerance = get_eps())
   
   hermite_est <-
-    hermite_estimator(N = 10, standardize = TRUE) %>%
-    update_batch(test_observations)
+    hermite_estimator(N = 10, standardize = TRUE, 
+                      observations = test_observations)
   pdf_vals <- hermite_est %>% dens(x, accelerate_series = FALSE)
   target_pdf_vals_standardized <-
     c(
@@ -583,8 +577,7 @@ test_that("probability density estimation works as expected", {
       0.2352683
     )
   expect_equal(pdf_vals, target_pdf_vals_unstandardized, tolerance = get_eps())
-  
-  hermite_est <-
+hermite_est <-
     hermite_estimator(N = 10,
                       standardize = FALSE,
                       exp_weight_lambda = 0.1)
@@ -606,7 +599,7 @@ test_that("probability density estimation works as expected", {
       0.25292388
     )
   expect_equal(pdf_vals, target_pdf_vals_unstandardized, tolerance = get_eps())
-  
+
   hermite_est <-
     hermite_estimator(N = 10,
                       standardize = FALSE,
@@ -695,8 +688,8 @@ test_that("cumulative distribution function estimation works as expected",
               2.214421
             )
             hermite_est <-
-              hermite_estimator(N = 10, standardize = FALSE) %>%
-              update_batch(test_observations)
+              hermite_estimator(N = 10, standardize = FALSE, 
+                                observations = test_observations)
             cdf_from_pdf <- stats::integrate(
               f = function(x) {
                 hermite_est %>% dens(x, accelerate_series = FALSE)
@@ -717,8 +710,8 @@ test_that("cumulative distribution function estimation works as expected",
             expect_equal(cdf_est, 1, tolerance = get_eps())
             
             hermite_est <-
-              hermite_estimator(N = 10, standardize = TRUE) %>%
-              update_batch(test_observations)
+              hermite_estimator(N = 10, standardize = TRUE, 
+                                observations = test_observations)
             cdf_from_pdf <- stats::integrate(
               f = function(x) {
                 hermite_est %>% dens(x, accelerate_series = FALSE)
@@ -786,7 +779,6 @@ test_that("cumulative distribution function estimation works as expected",
             cdf_est <- hermite_est %>% cum_prob(0.5, accelerate_series = TRUE)
             expect_equal(cdf_est, 0.4955906, tolerance = get_eps())
             expect_equal(cdf_from_pdf, cdf_est, tolerance = get_eps())
-            
             hermite_est <-
               hermite_estimator(N = 10)
             expect_equal(hermite_est %>% cum_prob(0.5, 
@@ -827,8 +819,8 @@ test_that("quantile estimation works as expected", {
     2.214421
   )
   hermite_est <-
-    hermite_estimator(N = 0, standardize = TRUE) %>%
-    update_batch(test_observations)
+    hermite_estimator(N = 0, standardize = TRUE, 
+                      observations = test_observations)
   quantiles_est <- hermite_est %>% quant(c(0.25, 0.5, 0.75))
   expect_equal(quantiles_est,
                c(-1.0771798, -0.1580109,  0.7745023),
@@ -850,16 +842,16 @@ test_that("quantile estimation works as expected", {
                c(-1.0771734, -0.1513388,  0.7744958),
                tolerance = get_eps())
   hermite_est <-
-    hermite_estimator(N = 2, standardize = TRUE) %>%
-    update_batch(test_observations)
+    hermite_estimator(N = 2, standardize = TRUE, 
+                      observations = test_observations)
   quantiles_est <- hermite_est %>% quant(c(0.25, 0.5, 0.75))
   expect_equal(quantiles_est,
-               c( -1.0114183, -0.1528504,  0.8384226),
+               c(-1.1394204, 0.0169664,  1.0930044),
                tolerance = get_eps())
   quantiles_est <- hermite_est %>% quant(c(0.25, 0.5, 0.75), 
                                          algorithm = "bisection")
   expect_equal(quantiles_est,
-               c(-1.0115987, -0.1510623,  0.8383335),
+               c(-1.13935192, 0.01706313,  1.09273375),
                tolerance = get_eps())
   quantiles_est <- hermite_est %>% quant(c(0.25, 0.5, 0.75), 
                                          accelerate_series = FALSE)
@@ -873,8 +865,8 @@ test_that("quantile estimation works as expected", {
                c(-1.3533800,  0.1420511,  1.2907235),
                tolerance = get_eps())
   hermite_est <-
-    hermite_estimator(N = 10, standardize = TRUE) %>%
-    update_batch(test_observations)
+    hermite_estimator(N = 10, standardize = TRUE, 
+                      observations = test_observations)
   quantiles_est <- hermite_est %>% quant(c(0.25, 0.5, 0.75))
   expect_equal(quantiles_est,
                c(-1.55096352,  0.05649595,  0.93885643),
@@ -917,19 +909,19 @@ test_that("quantile estimation works as expected", {
                tolerance = get_eps())
   quantiles_est <- hermite_est %>% quant(c(0.25, 0.5, 0.75), 
                                          algorithm = "bisection")
-  expect_equal(quantiles_est, c(-0.8793468 , 0.4445265,  1.4835805), 
+  expect_equal(quantiles_est, c(-0.8793468 , 0.4445265,  1.4835805),
                tolerance = get_eps())
   hermite_est <-
     hermite_estimator(N = 20,
-                      standardize = TRUE) %>% update_batch(c(1:4))
+                      standardize = TRUE, observations = c(1:4))
   quantiles_est <- hermite_est %>% quant(c(0.5))
   expect_equal(quantiles_est,2.496089, 
                tolerance = get_eps())
   quantiles_est <- hermite_est %>% quant(c(0.5), algorithm="bisection")
   expect_equal(quantiles_est,2.5, 
                tolerance = get_eps())
-  hermite_est <- hermite_estimator(N = 10, standardize = TRUE)
-  hermite_est <- update_batch(hermite_est,c(1,1))
+  hermite_est <- hermite_estimator(N = 10, standardize = TRUE, 
+                                   observations = c(1,1))
   expect_equal(quant(hermite_est, p=0.5), 1)
 })
 
@@ -1053,17 +1045,17 @@ test_that("convenience and utility functions work as expected", {
 test_that("Print and Summary work as expected", {
   expect_equal(capture.output(print(hermite_estimator())), 
                c("Univariate Hermite Estimator:",
-                 "N = 30", "Standardize observations = TRUE",
+                 "N = 50", "Standardize observations = TRUE",
                  "Exponential weighting for coefficents = FALSE",
                  "Number of observations = 0"))
-  h_est <- update_batch(hermite_estimator(),c(1,2,3))
+  h_est <- hermite_estimator(observations = c(1,2,3))
   expect_equal(capture.output(summary(h_est)), 
-               c('Univariate Hermite Estimator:','N = 30',
+               c('Univariate Hermite Estimator:','N = 50',
                  'Standardize observations = TRUE',
                  'Exponential weighting for coefficents = FALSE',
                  'Number of observations = 3','','Mean = 2',
                  'Standard Deviation = 1','Estimated Quantiles:',
-                 paste0('    10%    20%    30%    40%    50%    60%    70%    ',
-                 '80%    90%'),paste0(' 0.9083 1.0228 1.1513 1.8812 2.0042',
-                 ' 2.1188 2.8487 2.9772 3.0917')))
+      paste0('    10%    20%    30%    40%    50%    60%   70%    ',
+                 '80%    90%'), 
+      paste0(' 0.9375 1.0375 1.1449 1.8919 2.0007 2.1081 2.295 2.9625 3.0625')))
 })
