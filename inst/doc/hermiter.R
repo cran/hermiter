@@ -18,6 +18,7 @@ library(data.table)
 library(DT)
 library(mvtnorm)
 library(patchwork)
+library(colorspace)
 
 ## -----------------------------------------------------------------------------
 hermite_est <- hermite_estimator(N=10, standardize=TRUE, 
@@ -41,32 +42,24 @@ hermite_est <- hermite_estimator(N=10, standardize=TRUE,
 ## -----------------------------------------------------------------------------
 observations <- rlogis(n=1000)
 hermite_est <- hermite_estimator(N=10, standardize=TRUE)
-for (idx in seq_along(observations)) {
-  hermite_est <- update_sequential(hermite_est,observations[idx])
-}
+hermite_est <- update_sequential(hermite_est,observations)
 
 ## -----------------------------------------------------------------------------
 observations <- matrix(data = rnorm(2000),nrow = 1000, ncol=2)
 hermite_est <- hermite_estimator(N=10, standardize=TRUE, 
                                  est_type = "bivariate")
-for (idx in seq_len(nrow(observations))) {
-  hermite_est <- update_sequential(hermite_est,observations[idx,])
-}
+hermite_est <- update_sequential(hermite_est,observations)
 
 ## -----------------------------------------------------------------------------
 observations <- rlogis(n=1000)
 hermite_est <- hermite_estimator(N=10, standardize=TRUE)
-for (idx in seq_along(observations)) {
-  hermite_est <- hermite_est %>% update_sequential(observations[idx])
-}
+hermite_est <- hermite_est %>% update_sequential(observations)
 
 ## -----------------------------------------------------------------------------
 observations <- matrix(data = rnorm(2000),nrow = 1000, ncol=2)
 hermite_est <- hermite_estimator(N=10, standardize=TRUE, 
                                  est_type = "bivariate")
-for (idx in seq_len(nrow(observations))) {
-  hermite_est <- hermite_est %>% update_sequential(observations[idx,])
-}
+hermite_est <- hermite_est %>% update_sequential(observations)
 
 ## -----------------------------------------------------------------------------
 observations_1 <- rlogis(n=1000)
@@ -142,6 +135,23 @@ ggplot(df_quant,aes(x=actual_quantiles)) + geom_point(aes(y=quantile_est),
   ylab("Estimated Quantiles")
 
 ## -----------------------------------------------------------------------------
+h_dens <- density(hermite_est)
+print(h_dens)
+plot(h_dens)
+
+h_cdf <- hcdf(hermite_est)
+print(h_cdf)
+plot(h_cdf)
+summary(h_cdf)
+
+## -----------------------------------------------------------------------------
+quantile(hermite_est)
+
+median(hermite_est)
+
+IQR(hermite_est)
+
+## -----------------------------------------------------------------------------
 # Prepare bivariate normal data
 sig_x <- 1
 sig_y <- 1
@@ -197,16 +207,14 @@ df_pdf_cdf <- data.frame(x_grid,pdf_est,cdf_est,actual_pdf,actual_cdf)
 
 ## -----------------------------------------------------------------------------
 p1 <- ggplot(df_pdf_cdf) + geom_tile(aes(X, Y, fill= actual_pdf)) +
-  scale_fill_gradient2(low="blue", mid="cyan", high="purple",
-                       midpoint=.1,    
-                       breaks=seq(0,.2,by=.05), 
-                       limits=c(0,.2))  
+  scale_fill_continuous_sequential(palette="Oslo",
+                                   breaks=seq(0,.2,by=.05),
+                                   limits=c(0,.2))
 
 p2 <- ggplot(df_pdf_cdf) + geom_tile(aes(X, Y, fill= pdf_est)) +
-  scale_fill_gradient2(low="blue", mid="cyan", high="purple",
-                       midpoint=.1,
-                       breaks=seq(0,.2,by=.05), 
-                       limits=c(0,.2))
+  scale_fill_continuous_sequential(palette="Oslo",
+                                   breaks=seq(0,.2,by=.05),
+                                   limits=c(0,.2))
 
 p1+ ggtitle("Actual PDF")+ theme(legend.title = element_blank()) + p2 +
   ggtitle("Estimated PDF") +theme(legend.title = element_blank()) +
@@ -214,20 +222,33 @@ p1+ ggtitle("Actual PDF")+ theme(legend.title = element_blank()) + p2 +
 
 ## -----------------------------------------------------------------------------
 p1 <- ggplot(df_pdf_cdf) + geom_tile(aes(X, Y, fill= actual_cdf)) +
-  scale_fill_gradient2(low="blue", mid="cyan", high="purple", 
-                       midpoint=0.5,    
-                       breaks=seq(0,1,by=.2), 
-                       limits=c(0,1)) 
+  scale_fill_continuous_sequential(palette="Oslo",
+                       breaks=seq(0,1,by=.2),
+                       limits=c(0,1))
 
 p2 <- ggplot(df_pdf_cdf) + geom_tile(aes(X, Y, fill= cdf_est)) +
-  scale_fill_gradient2(low="blue", mid="cyan", high="purple",
-                       midpoint=0.5,
-                       breaks=seq(0,1,by=.2), #breaks in the scale bar
-                       limits=c(0,1))
+  scale_fill_continuous_sequential(palette="Oslo",
+                                   breaks=seq(0,1,by=.2),
+                                   limits=c(0,1))
 
 p1+ ggtitle("Actual CDF") + theme(legend.title = element_blank()) + p2 +
   ggtitle("Estimated CDF") + theme(legend.title = element_blank())+
   plot_layout(guides = 'collect')
+
+## -----------------------------------------------------------------------------
+h_dens <- density(hermite_est)
+print(h_dens)
+plot(h_dens)
+
+h_cdf <- hcdf(hermite_est)
+print(h_cdf)
+plot(h_cdf)
+summary(h_cdf)
+
+## -----------------------------------------------------------------------------
+cor(observations_mat,method="hermite.spearman")
+
+cor(observations_mat,method="hermite.kendall")
 
 ## -----------------------------------------------------------------------------
 # Prepare Test Data
