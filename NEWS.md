@@ -1,3 +1,11 @@
+# hermiter v2.3.1
+
+## Minor improvements and bug fixes
+
+* Updated parallelized C++ methods to be more thread-safe and included 
+improved bound checking.
+* Updated citation for hermiter article.
+
 # hermiter v2.3.0
 
 ## Additions and improvements
